@@ -8,6 +8,7 @@ import { buildCopyablePrompt } from "@/lib/prompt";
 import { cache, hash } from "@/lib/store";
 import { copyText, download } from "@/lib/clipboard";
 import PromptBox from "@/components/PromptBox";
+import StartChooser, { describeMode, type Mode } from "@/components/StartChooser";
 
 const NotesView = dynamic(() => import("@/components/NotesView"), { ssr: false });
 const VideoStep = dynamic(() => import("@/components/VideoStep"), { ssr: false });
@@ -15,6 +16,7 @@ const VideoStep = dynamic(() => import("@/components/VideoStep"), { ssr: false }
 /** Everything small about the current lecture; big blobs are cached under their own keys. */
 type Session = {
   sessionId: string;
+  mode?: Mode;
   sourceName: string;
   sampleRate: number;
   opts: EnhanceOptions;
@@ -78,6 +80,15 @@ export default function Home() {
   const [sessionId, setSessionId] = useState("");
   const [restored, setRestored] = useState(false);
   const [resumeNote, setResumeNote] = useState("");
+  // What the user starts from and wants to make; decides which steps are shown.
+  const [mode, setMode] = useState<Mode | null>(null);
+  const [choosing, setChoosing] = useState(false);
+
+  function chooseMode(m: Mode) {
+    setMode(m);
+    setChoosing(false);
+    if (!sessionId) setSessionId(String(Date.now()));
+  }
   const [recording, setRecording] = useState(false);
   const [recSeconds, setRecSeconds] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -134,6 +145,23 @@ export default function Home() {
     setAudioVersion("original");
     setAudioError("");
     setTranscript("");
+    setTxError("");
+    setNotes("");
+    setResumeNote("");
+  }
+
+  /** Loading a transcript file also starts a new round (in transcript mode it is the input file). */
+  async function selectTranscriptFile(file: File) {
+    const text = await file.text();
+    await cache.clear();
+    setSourceBlob(null);
+    setSourceUrl("");
+    setSourceName(file.name);
+    setSessionId(String(Date.now()));
+    setOriginal(null);
+    setEnhanced(null);
+    setAudioVersion("original");
+    setTranscript(text);
     setTxError("");
     setNotes("");
     setResumeNote("");
@@ -324,6 +352,7 @@ export default function Home() {
       const source = await cache.get<Blob>("source");
       if (s) {
         setSessionId(s.sessionId);
+        setMode(s.mode ?? null);
         setSourceName(s.sourceName);
         setSampleRate(s.sampleRate);
         setOpts(s.opts);
@@ -363,13 +392,13 @@ export default function Home() {
     if (!restored || !sessionId) return;
     const t = setTimeout(() => {
       const s: Session = {
-        sessionId, sourceName, sampleRate, opts, audioVersion, engine, localModel, cloudModel, vocab,
+        sessionId, mode: mode ?? undefined, sourceName, sampleRate, opts, audioVersion, engine, localModel, cloudModel, vocab,
         transcript, subject, level, extra, notesModel, notes,
       };
       cache.set("session", s);
     }, 400);
     return () => clearTimeout(t);
-  }, [restored, sessionId, sourceName, sampleRate, opts, audioVersion, engine, localModel, cloudModel, vocab, transcript, subject, level, extra, notesModel, notes]);
+  }, [restored, sessionId, mode, sourceName, sampleRate, opts, audioVersion, engine, localModel, cloudModel, vocab, transcript, subject, level, extra, notesModel, notes]);
 
   async function startOver() {
     if (!confirm("Clear the saved lecture (audio, transcript, notes, slides and video) from this browser?")) return;
@@ -380,12 +409,20 @@ export default function Home() {
   const canUseClaude = serverKeys.anthropic || !!anthropicKey;
   const canUseOpenAI = serverKeys.openai || !!openaiKey;
 
+  // Which steps to show depends on what the user picked on the start screen.
+  const flow = !choosing && mode ? mode : null;
+  const has = (g: Mode["goals"][number]) => !!flow?.goals.includes(g);
+  const isLecture = flow?.source === "lecture";
+  const needsTranscript = has("notes") || has("video");
+  let stepNo = 0;
+  const nextStep = () => ++stepNo;
+
   return (
     <main>
       <header className="top no-print">
         <div>
           <h1>Lecture Notes Studio</h1>
-          <p className="muted">Record or upload a lecture → clean up the professor&apos;s voice → transcript → illustrated class notes → slides with a Hinglish narrated video.</p>
+          <p className="muted">Clean lecture audio, class notes and PPT video lectures from a recording or transcript.</p>
         </div>
         <div className="row">
           {sessionId && <button className="ghost" onClick={startOver} title="Your work is saved in this browser until you choose a new file">↺ Start over</button>}
@@ -406,9 +443,21 @@ export default function Home() {
         </section>
       )}
 
-      {/* STEP 1 */}
+      {restored && (!mode || choosing) && (
+        <StartChooser initial={mode} onDone={chooseMode} onCancel={mode ? () => setChoosing(false) : undefined} />
+      )}
+
+      {flow && (
+        <div className="mode-bar no-print">
+          <span><b>Your plan:</b> {describeMode(flow)}</span>
+          <button className="ghost small" onClick={() => setChoosing(true)}>Change</button>
+        </div>
+      )}
+
+      {/* LECTURE FILE */}
+      {isLecture && (
       <section className="card no-print">
-        <h2><span className="num">1</span> Capture the lecture</h2>
+        <h2><span className="num">{nextStep()}</span> Upload the lecture</h2>
         <div className="row">
           {!recording ? (
             <button onClick={startRecording}>● Record from microphone</button>
@@ -425,10 +474,12 @@ export default function Home() {
         {sourceName && <p className="hint">💾 Each step&apos;s results are saved in this browser, so you can close or reload the page and carry on. Choosing a new file starts a fresh lecture.</p>}
         <p className="hint">Tip: sit near the front, put the phone/laptop mic facing the professor, and keep it away from fans and keyboards. A cheap clip-on or USB mic helps more than any software.</p>
       </section>
+      )}
 
-      {/* STEP 2 */}
+      {/* CLEAN AUDIO */}
+      {isLecture && has("audio") && (
       <section className="card no-print">
-        <h2><span className="num">2</span> Clean up the voice</h2>
+        <h2><span className="num">{nextStep()}</span> Clean up the voice</h2>
         <div className="grid">
           <label className="check"><input type="checkbox" checked={opts.denoise} onChange={(e) => setOpts({ ...opts, denoise: e.target.checked })} /> Remove background noise</label>
           <label>Noise removal strength: {Math.round(opts.denoiseStrength * 100)}%
@@ -459,12 +510,31 @@ export default function Home() {
             <div><b>After</b><audio controls src={enhanced.url} /></div>
           </div>
         )}
-        <p className="hint">You can skip this step: transcription will use the original audio.</p>
+        {needsTranscript && <p className="hint">The next step transcribes the cleaned audio if you made it, otherwise the original.</p>}
       </section>
+      )}
 
-      {/* STEP 3 */}
+      {/* TRANSCRIPT FILE */}
+      {flow?.source === "transcript" && (
+        <section className="card no-print">
+          <h2><span className="num">{nextStep()}</span> Add the transcript</h2>
+          <div className="row">
+            <label className="file">
+              Upload transcript file
+              <input type="file" accept=".txt,.md,.vtt,.srt" onChange={(e) => { const f = e.target.files?.[0]; if (f) selectTranscriptFile(f); e.target.value = ""; }} />
+            </label>
+            <span className="muted">or paste it below</span>
+          </div>
+          {sourceName && <p>Selected: <b>{sourceName}</b></p>}
+          <textarea value={transcript} onChange={(e) => setTranscript(e.target.value)} rows={10} placeholder="Paste the lecture transcript here…" />
+          <p className="hint">💾 Your work is saved in this browser until you upload a new file or click Start over.</p>
+        </section>
+      )}
+
+      {/* TRANSCRIBE */}
+      {isLecture && needsTranscript && (
       <section className="card no-print">
-        <h2><span className="num">3</span> Transcribe</h2>
+        <h2><span className="num">{nextStep()}</span> Transcribe</h2>
         <div className="grid">
           <label>Engine
             <select value={engine} onChange={(e) => setEngine(e.target.value as "local" | "openai")}>
@@ -507,10 +577,12 @@ export default function Home() {
         <textarea value={transcript} onChange={(e) => setTranscript(e.target.value)} rows={12} placeholder="The transcript appears here. You can edit it, or paste one in." />
         <p className="hint">On-laptop transcription takes roughly 5–20 minutes per lecture hour with a GPU-capable browser (Chrome/Edge), longer on CPU. Keep this tab open.</p>
       </section>
+      )}
 
-      {/* STEP 4 */}
+      {/* LECTURE DETAILS (shared by notes and video) */}
+      {needsTranscript && (
       <section className="card no-print">
-        <h2><span className="num">4</span> Class notes</h2>
+        <h2><span className="num">{nextStep()}</span> About the lecture</h2>
         <div className="grid">
           <label>Subject / course
             <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Electrical Engineering, Signals & Systems" />
@@ -530,6 +602,14 @@ export default function Home() {
             <input value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="e.g. focus on derivations; add more practice problems" />
           </label>
         </div>
+        <p className="hint">Used for both the class notes and the video lecture. The AI model only matters if you added an Anthropic API key in Settings.</p>
+      </section>
+      )}
+
+      {/* CLASS NOTES */}
+      {has("notes") && (
+      <section className="card no-print">
+        <h2><span className="num">{nextStep()}</span> Class notes</h2>
         <div className="row">
           <button onClick={generateNotes} disabled={!transcript.trim() || notesBusy || !canUseClaude} title={canUseClaude ? "" : "Add an Anthropic API key in Settings"}>🤖 Generate class notes with AI</button>
           {notesBusy && <button className="ghost" onClick={() => abortRef.current?.abort()}>Stop</button>}
@@ -542,8 +622,9 @@ export default function Home() {
         )}
         {notesBusy && <ProgressBar busy={{ label: notes ? "Writing notes" : "Thinking about the lecture (this can take a minute)" }} />}
       </section>
+      )}
 
-      {notes && (
+      {has("notes") && notes && (
         <section className="card notes-card">
           <div className="row no-print">
             <button className="ghost" onClick={() => download(new Blob([notes], { type: "text/markdown" }), "class-notes.md")}>⬇ Download Markdown</button>
@@ -553,8 +634,10 @@ export default function Home() {
         </section>
       )}
 
-      {/* STEP 5 */}
+      {/* PPT VIDEO LECTURE */}
+      {has("video") && (
       <VideoStep
+        step={nextStep()}
         transcript={transcript}
         subject={subject}
         level={level}
@@ -566,6 +649,7 @@ export default function Home() {
         canUseOpenAI={canUseOpenAI}
         sessionId={sessionId}
       />
+      )}
     </main>
   );
 }

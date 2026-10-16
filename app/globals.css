@@ -78,6 +78,31 @@ button.danger { background: var(--danger); border-color: var(--danger); }
 .compare div { display: flex; flex-direction: column; gap: 6px; }
 audio { width: 100%; }
 
+/* ---------- start screen ---------- */
+.chooser h2 { margin-bottom: 12px; }
+.chooser-q2 { margin-top: 22px; }
+.chooser-q2 .muted { font-size: 0.9rem; font-weight: 400; }
+.choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.choice {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
+  padding: 16px 18px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg); color: var(--text); font-weight: 400;
+}
+.choice:hover { border-color: var(--accent); }
+.choice.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
+.choice-icon { font-size: 1.6rem; line-height: 1.2; }
+.choice-title { font-weight: 700; font-size: 1.02rem; }
+.choice-text { color: var(--muted); font-size: 0.88rem; }
+.choice-check {
+  position: absolute; top: 10px; right: 12px; width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border);
+  display: grid; place-items: center; font-size: 0.8rem; font-weight: 700; color: var(--accent-text);
+}
+.choice.selected .choice-check { background: var(--accent); border-color: var(--accent); }
+.chooser-actions { margin-top: 18px; }
+.mode-bar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 16px; margin-bottom: 18px; border-radius: 10px; background: var(--card); border: 1px solid var(--border); font-size: 0.95rem;
+}
+
 .steps { margin: 8px 0 4px; padding-left: 22px; font-size: 0.92rem; }
 .steps li { margin: 4px 0; }
 button.small { padding: 4px 10px; font-size: 0.85rem; }
