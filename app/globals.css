@@ -1,0 +1,120 @@
+:root {
+  --bg: #f6f7fb;
+  --card: #ffffff;
+  --text: #1c2033;
+  --muted: #646b84;
+  --border: #e2e5ef;
+  --accent: #4f46e5;
+  --accent-text: #ffffff;
+  --danger: #dc2626;
+  --code-bg: #f1f3f9;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1220;
+    --card: #181c2e;
+    --text: #e6e8f2;
+    --muted: #9aa1bb;
+    --border: #2a2f47;
+    --accent: #818cf8;
+    --accent-text: #0f1220;
+    --danger: #f87171;
+    --code-bg: #20253b;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { margin: 0 0 4px; font-size: 1.7rem; }
+h2 { margin: 0 0 14px; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+.num {
+  display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-text); font-size: 0.9rem;
+}
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+.muted { color: var(--muted); }
+.hint { color: var(--muted); font-size: 0.88rem; margin: 10px 0 0; }
+.error { color: var(--danger); }
+.pill { font-size: 0.75rem; background: var(--code-bg); border: 1px solid var(--border); border-radius: 99px; padding: 1px 8px; margin-left: 6px; }
+
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 18px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px 20px; }
+
+label { display: flex; flex-direction: column; gap: 6px; font-size: 0.92rem; }
+label.check { flex-direction: row; align-items: center; gap: 8px; }
+input[type="text"], input[type="password"], input:not([type]), select, textarea {
+  font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; width: 100%;
+}
+textarea { margin-top: 12px; resize: vertical; font-size: 0.92rem; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+button, .file {
+  font: inherit; font-weight: 600; cursor: pointer; border-radius: 9px; padding: 9px 16px;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.ghost, .file.ghost-file { background: transparent; color: var(--accent); }
+button.danger { background: var(--danger); border-color: var(--danger); }
+.file { flex-direction: row; background: transparent; color: var(--accent); }
+.file input { display: none; }
+
+.progress { margin-top: 12px; }
+.progress-label { font-size: 0.88rem; color: var(--muted); margin-bottom: 6px; }
+.progress-track { height: 8px; background: var(--code-bg); border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+.progress-fill.indeterminate { width: 35%; animation: slide 1.2s infinite ease-in-out; }
+@keyframes slide { from { margin-left: -35%; } to { margin-left: 100%; } }
+
+.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 14px; }
+.compare div { display: flex; flex-direction: column; gap: 6px; }
+audio { width: 100%; }
+
+.steps { margin: 8px 0 4px; padding-left: 22px; font-size: 0.92rem; }
+.steps li { margin: 4px 0; }
+button.small { padding: 4px 10px; font-size: 0.85rem; }
+
+/* ---------- slides & video ---------- */
+.video { width: 100%; border-radius: 10px; background: #000; margin: 8px 0 12px; }
+.slides { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.slide-item { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.slide-item img, .slide-placeholder { width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+.slide-placeholder { display: grid; place-items: center; color: #6b7280; font-size: 0.9rem; }
+.slide-script textarea { margin-top: 6px; font-size: 0.88rem; }
+.slide-head { margin: 0; justify-content: space-between; flex-wrap: nowrap; }
+@media (max-width: 640px) { .slide-item { grid-template-columns: 1fr; } }
+
+/* ---------- notes ---------- */
+.notes { line-height: 1.65; overflow-wrap: anywhere; }
+.notes h1 { font-size: 1.8rem; margin-top: 0; }
+.notes h2 { display: block; font-size: 1.35rem; margin: 2em 0 0.6em; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.notes h3 { margin: 1.5em 0 0.5em; }
+.notes blockquote { margin: 1em 0; padding: 8px 16px; border-left: 4px solid var(--accent); background: var(--code-bg); border-radius: 0 8px 8px 0; }
+.notes table { border-collapse: collapse; width: 100%; margin: 1em 0; display: block; overflow-x: auto; }
+.notes th, .notes td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+.notes th { background: var(--code-bg); }
+.notes code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 0.9em; }
+.notes pre { background: var(--code-bg); padding: 12px; border-radius: 8px; overflow-x: auto; }
+.notes pre code { background: none; padding: 0; }
+.notes .katex-display { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.figure { margin: 1.2em 0; padding: 12px; background: #ffffff; border: 1px solid var(--border); border-radius: 10px; text-align: center; overflow-x: auto; }
+.figure img, .figure svg { max-width: 100%; height: auto; }
+.figure-error { text-align: left; color: #333; }
+.figure-pending { display: block; color: var(--muted); font-style: italic; padding: 8px 0; }
+
+@media print {
+  body { background: #fff; color: #000; }
+  .no-print { display: none !important; }
+  .card { border: none; padding: 0; }
+  main { max-width: none; padding: 0; }
+  .figure { break-inside: avoid; }
+  .notes h2 { break-after: avoid; }
+}
