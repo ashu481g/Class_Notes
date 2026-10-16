@@ -8,6 +8,7 @@ import { buildPptx, canEncodeFast, diagramImage, renderVideo, slideCanvas, speak
 import PromptBox from "./PromptBox";
 
 type Props = {
+  step: number;
   transcript: string;
   subject: string;
   level: string;
@@ -213,10 +214,10 @@ export default function VideoStep(p: Props) {
 
   return (
     <section className="card no-print">
-      <h2><span className="num">5</span> Slides &amp; narrated video</h2>
+      <h2><span className="num">{p.step}</span> PPT video lecture</h2>
       <p className="muted">
         Turns the transcript into an English slide deck with diagrams and formulas, plus a Hinglish (Hindi + English) voice-over
-        in an Indian teaching style. Uses the subject, level and model chosen in step 4.
+        in an Indian teaching style.
       </p>
       <div className="row">
         <button onClick={generate} disabled={!hasTranscript || !!busy || !p.canUseClaude} title={p.canUseClaude ? "" : "Add an Anthropic API key in Settings"}>
