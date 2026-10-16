@@ -78,6 +78,18 @@ button.danger { background: var(--danger); border-color: var(--danger); }
 .compare div { display: flex; flex-direction: column; gap: 6px; }
 audio { width: 100%; }
 
+/* ---------- live recorder ---------- */
+.rec-panel { display: flex; align-items: center; gap: 14px; margin: 14px 0 4px; }
+.rec-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--border); flex: none; }
+.rec-dot.on { background: var(--danger); animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: 0.35; } }
+.rec-time { font-size: 1.8rem; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 90px; }
+.rec-meter { flex: 1; height: 10px; background: var(--code-bg); border-radius: 99px; overflow: hidden; }
+.rec-meter div { height: 100%; background: linear-gradient(90deg, #22c55e, #eab308 75%, var(--danger)); transition: width 0.08s; }
+.recover { padding: 12px 14px; border: 1px solid var(--danger); border-radius: 10px; margin-bottom: 12px; }
+.source-info { margin-top: 12px; }
+.source-info p { margin: 0 0 6px; }
+
 /* ---------- start screen ---------- */
 .chooser h2 { margin-bottom: 12px; }
 .chooser-q2 { margin-top: 22px; }

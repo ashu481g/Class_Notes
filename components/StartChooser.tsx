@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 
-export type Source = "lecture" | "transcript";
+export type Source = "record" | "lecture" | "transcript";
+/** Live recordings and uploaded recordings go through the same audio steps. */
+export const isAudioSource = (s: Source | undefined) => s === "record" || s === "lecture";
 export type Goal = "audio" | "video" | "notes";
 export type Mode = { source: Source; goals: Goal[] };
 
 const SOURCES: { id: Source; icon: string; title: string; text: string }[] = [
-  { id: "lecture", icon: "🎙", title: "A lecture recording", text: "Audio or video file, or record one now" },
-  { id: "transcript", icon: "📄", title: "A transcript", text: "Text file, or paste the text" },
+  { id: "record", icon: "🔴", title: "Record a lecture live", text: "Use this laptop's or phone's microphone in class" },
+  { id: "lecture", icon: "🎙", title: "A lecture recording", text: "Upload an audio or video file" },
+  { id: "transcript", icon: "📄", title: "A transcript", text: "Upload a text file, or paste the text" },
 ];
 
 const GOALS: { id: Goal; icon: string; title: string; text: string; lectureOnly?: boolean }[] = [
@@ -18,13 +21,13 @@ const GOALS: { id: Goal; icon: string; title: string; text: string; lectureOnly?
 ];
 
 export const describeMode = (m: Mode) =>
-  `${m.source === "lecture" ? "Lecture recording" : "Transcript"} → ${m.goals.map((g) => GOALS.find((x) => x.id === g)!.title).join(" + ")}`;
+  `${m.source === "record" ? "Live recording" : m.source === "lecture" ? "Lecture recording" : "Transcript"} → ${m.goals.map((g) => GOALS.find((x) => x.id === g)!.title).join(" + ")}`;
 
 export default function StartChooser({ initial, onDone, onCancel }: { initial: Mode | null; onDone: (m: Mode) => void; onCancel?: () => void }) {
   const [source, setSource] = useState<Source | null>(initial?.source ?? null);
   const [goals, setGoals] = useState<Goal[]>(initial?.goals ?? []);
 
-  const available = GOALS.filter((g) => source === "lecture" || !g.lectureOnly);
+  const available = GOALS.filter((g) => isAudioSource(source ?? undefined) || !g.lectureOnly);
   const chosen = goals.filter((g) => available.some((a) => a.id === g));
   const toggle = (g: Goal) => setGoals((cur) => (cur.includes(g) ? cur.filter((x) => x !== g) : [...cur, g]));
 

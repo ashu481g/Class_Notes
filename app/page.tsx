@@ -8,7 +8,8 @@ import { buildCopyablePrompt } from "@/lib/prompt";
 import { cache, hash } from "@/lib/store";
 import { copyText, download } from "@/lib/clipboard";
 import PromptBox from "@/components/PromptBox";
-import StartChooser, { describeMode, type Mode } from "@/components/StartChooser";
+import StartChooser, { describeMode, isAudioSource, type Mode } from "@/components/StartChooser";
+import Recorder from "@/components/Recorder";
 
 const NotesView = dynamic(() => import("@/components/NotesView"), { ssr: false });
 const VideoStep = dynamic(() => import("@/components/VideoStep"), { ssr: false });
@@ -88,39 +89,6 @@ export default function Home() {
     setMode(m);
     setChoosing(false);
     if (!sessionId) setSessionId(String(Date.now()));
-  }
-  const [recording, setRecording] = useState(false);
-  const [recSeconds, setRecSeconds] = useState(0);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const timerRef = useRef<number | undefined>(undefined);
-
-  async function startRecording() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: false, noiseSuppression: true, autoGainControl: true },
-      });
-      const rec = new MediaRecorder(stream);
-      const parts: Blob[] = [];
-      rec.ondataavailable = (e) => e.data.size && parts.push(e.data);
-      rec.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(parts, { type: rec.mimeType });
-        selectSource(blob, `lecture-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-")}.webm`);
-        download(blob, `lecture-recording-${Date.now()}.webm`); // safety copy of the raw recording
-      };
-      rec.start(1000);
-      recorderRef.current = rec;
-      setRecording(true);
-      setRecSeconds(0);
-      timerRef.current = window.setInterval(() => setRecSeconds((s) => s + 1), 1000);
-    } catch (e) {
-      alert("Could not access the microphone: " + e);
-    }
-  }
-  function stopRecording() {
-    recorderRef.current?.stop();
-    window.clearInterval(timerRef.current);
-    setRecording(false);
   }
 
   // ---------- step 2: enhance ----------
@@ -412,7 +380,7 @@ export default function Home() {
   // Which steps to show depends on what the user picked on the start screen.
   const flow = !choosing && mode ? mode : null;
   const has = (g: Mode["goals"][number]) => !!flow?.goals.includes(g);
-  const isLecture = flow?.source === "lecture";
+  const isLecture = isAudioSource(flow?.source);
   const needsTranscript = has("notes") || has("video");
   let stepNo = 0;
   const nextStep = () => ++stepNo;
@@ -457,21 +425,32 @@ export default function Home() {
       {/* LECTURE FILE */}
       {isLecture && (
       <section className="card no-print">
-        <h2><span className="num">{nextStep()}</span> Upload the lecture</h2>
-        <div className="row">
-          {!recording ? (
-            <button onClick={startRecording}>● Record from microphone</button>
-          ) : (
-            <button className="danger" onClick={stopRecording}>■ Stop ({formatTime(recSeconds)})</button>
-          )}
-          <span className="muted">or</span>
-          <label className="file">
-            Upload audio / video file
-            <input type="file" accept="audio/*,video/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) selectSource(f, f.name); }} />
-          </label>
-        </div>
-        {sourceName && <p>Selected: <b>{sourceName}</b></p>}
-        {sourceName && <p className="hint">💾 Each step&apos;s results are saved in this browser, so you can close or reload the page and carry on. Choosing a new file starts a fresh lecture.</p>}
+        {flow?.source === "record" ? (
+          <>
+            <h2><span className="num">{nextStep()}</span> Record the lecture</h2>
+            <Recorder hasLecture={!!sourceBlob} onRecorded={(blob, name) => selectSource(blob, name)} />
+          </>
+        ) : (
+          <>
+            <h2><span className="num">{nextStep()}</span> Upload the lecture</h2>
+            <div className="row">
+              <label className="file">
+                Upload audio / video file
+                <input type="file" accept="audio/*,video/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) selectSource(f, f.name); e.target.value = ""; }} />
+              </label>
+            </div>
+          </>
+        )}
+        {sourceName && sourceBlob && (
+          <div className="source-info">
+            <p>{flow?.source === "record" ? "Recorded" : "Selected"}: <b>{sourceName}</b></p>
+            {sourceUrl && <audio controls src={sourceUrl} />}
+            <div className="row">
+              <button className="ghost small" onClick={() => download(sourceBlob, sourceName)}>⬇ Download {flow?.source === "record" ? "recording" : "original"}</button>
+            </div>
+          </div>
+        )}
+        {sourceName && <p className="hint">💾 Each step&apos;s results are saved in this browser, so you can close or reload the page and carry on. A new {flow?.source === "record" ? "recording" : "file"} starts a fresh lecture.</p>}
         <p className="hint">Tip: sit near the front, put the phone/laptop mic facing the professor, and keep it away from fans and keyboards. A cheap clip-on or USB mic helps more than any software.</p>
       </section>
       )}
